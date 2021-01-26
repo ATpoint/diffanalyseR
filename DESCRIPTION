@@ -1,0 +1,23 @@
+Package: diffanalyseR
+Type: Package
+Title: Wrapper functions for common tasks related to analysis of NGS counts data
+Version: 1.0.0
+Authors: Alexander Toenges <a.toenges@uni-muenster.de>
+Maintainer: Alexander Toenges <a.toenges@uni-muenster.de>
+Description: A collection of wrapper functions for reproducible differential analysis of NGS count data
+Depends: 
+  R (>= 4.0),
+  dplyr,
+  edgeR,
+  GenomicRanges,
+  ggplot2,
+  gprofiler2,
+  graphics,
+  matrixStats,
+  parallel,
+  reshape2,
+  statmod
+Suggests:
+  airway
+Encoding: UTF-8
+RoxygenNote: 7.1.1

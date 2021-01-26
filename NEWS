@@ -1,0 +1,111 @@
+v2.2.0:
+-retired the ggMAplot and profile plot functions and moved overhauled versions
+to the new ATpoint/vizzy package
+-retired the gene signatures functions, moved to the ATpoint/CreateGeneSignatures package
+which now has only two minimal dependencies (matrixStats/RobustRankAggreg)
+
+v2.1.0:
+-complete overhaul of the PlotProfiles (now Plot.Profiles) function.
+Cleaned up the code, simplified, shorter, more customizable.
+
+v2.0.9:
+-added BootyP_Ranges, a function to generate bootstrap p-values based on observed and random overlaps between GRanges objects
+-removed all size parameters from PlotProfile to allow global theme_set()
+
+v2.0.8:
+-added run_apeglm to run apeglm shrinkage of DESeq2 LFCs incl automatic releveling to provide
+coefs in resultsNames
+-added DESeq2 and apeglm as dependency
+
+v2.0.7:
+-retired the goseq function, never used, removing the dependencies
+-added the RobustRankAggreg:.rankMatrix source directly to the CreateGeneSignatures script so we can
+remove that package as dependency. Referenced the package in ?CreateGeneSignatures
+-added ... for gost() arguments to gosty()
+-added type argument to MostVariable rows to choose between rowVars and modelGeneVar for selection
+
+v2.0.6
+-renamed prepare_DElists into RankedDElists and made code more clear plus putting comments and examples
+-added examples to CreateGeneSignatures
+-added method arg to binMatrix
+
+v2.0.5:
+-res_edgeR be default tests against log2(1.2) via glmTreat
+
+v2.0.4:
+-renamed prepare_SingleR into prepare_RankedLists
+-added CreateGeneSignatures, a function which defines gene signatures for cell types in a rank-style fashion
+-added RobustRankAggreg as dependency as CreateGeneSignatures uses it internally
+
+v2.0.3:
+-added ... to MAplotFromCts for smoothMAplot arguments
+-added binMatrix function
+
+v2.0.2:
+-res_DESeq2() added switch for independent filtering
+
+v2.0.1:
+-cleaned up the ggMAplot function a bit and added example data
+-example data res_DESeq2()
+-MAplotFromCts for MA-plots for QC from norm. counts
+
+v2.0.0:
+-major overhaul of most functions. Added a DESeq2 results wrapper, simplyfied and made more generic the edgeR wrapper.
+These wrappers now exclusively create the results, all other stuff such as plots etc. was removed, now to be done externally.
+-simplified the ggplot functions by adding a constant basesize via theme_set().
+-Retired several old functions, added some comments here and there.
+-Removed the function descriptions in README, nobody going to ever read that anyway.
+-Removed LSK dependency, added DESeq2 as dependency, 
+
+v1.3.3:
+-added plotMarker()
+
+v1.3.2:
+-added prepareDElists to accept lists of DE results and parse data into a list-like format
+so combineMarkers() from scran can accept it. Is then used to infer marker genes.
+
+v1.3.1:
+-added prepareSingleR to prepare lists of upregulated genes from lists of DE results
+to be used with SingleR::trainSingleR()
+
+v1.3.0:
+-added src_helpers.R with three functions:
+  a) NormalizeByDeconvolution, for normalization of scRNA-seq data
+  b) GBclust, graph-based clustering of scRNA-seq
+  c) PlotXY, gg-based violinplots with jittered datapoints, e.g. to plot scRNA-seq QC metrics
+  
+v.1.2.15:
+-added FDR.threshold to gosty()
+-ensure that rownames are returned if using the averaging function of CountsTransformer()
+
+v.1.2.14:
+-added OnlySignif to gosty()
+
+v.1.2.13:
+-fixed rowScale function, it incorrectly did not use matrixStats::rowSds rather than base
+
+v1.2.12:
+-added Plot.ylim to plotProfiles()
+
+v.1.2.11:
+- added short description to README on what every function does
+
+- renamed ggMAplot to ggMAlcano in the pairwiseMAplot function
+
+- changed defaults in GetDate
+
+- comments in some functions
+
+v.1.2.1:
+
+- Simplified the Module.edgeR function. It now only runs the dispersion estimation,
+model fit and topTags functions. Normalization and CPMs are now excluded to be more customizable for the user upstream.
+It also by default now outputs both MA-plots of the DGEList/topTags and a Volcano.
+
+- outsourced the makeAllContrasts function that was in Module.edgeR into a separate function
+
+- string2chr, a little helper function to split chr:start-end into a three-column data frame with one command.
+
+- renamed ggMAplot into ggMAlcano because it was modified to produce either **MA**plots or Vo**lcanos**.
+
+- Module.GOST renamed into gosty.
