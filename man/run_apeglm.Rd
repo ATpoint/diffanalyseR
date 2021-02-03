@@ -10,7 +10,8 @@ run_apeglm(
   lfc = 0.5,
   svalue = TRUE,
   workers = 1,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ The latter is hardcoded in \code{DESeq2::lfcShrink}.}
 \item{workers}{number of BiocParallel workers}
 
 \item{verbose}{logical, whether to allow status messages}
+
+\item{...}{additional arguments passed to \code{DESeq2::results}}
 }
 \description{
 The function is designed to use apeglm for shrinking LFCs while automatically 
@@ -65,7 +68,7 @@ dds <- DESeq2::makeExampleDESeqDataSet()
 dds$condition <- factor(unlist(lapply(seq(1,3),function(x) rep(LETTERS[x], 4))))
 contrasts <- diffanalyseR::makeAllContrasts(levels(dds$condition), deseq2 = TRUE, name = "condition")
 dds <- DESeq2::estimateSizeFactors(dds) \%>\% DESeq2::estimateDispersions(.)
-res <- run_apeglm(dds,contrasts, lfc=.5)
+res <- run_apeglm(dds,contrasts, lfc=.5, cooksCutoff=0)
 
 }
 \author{

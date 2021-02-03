@@ -11,6 +11,7 @@
 #' The latter is hardcoded in \code{DESeq2::lfcShrink}. 
 #' @param workers number of BiocParallel workers
 #' @param verbose logical, whether to allow status messages
+#' @param ... additional arguments passed to \code{DESeq2::results}
 #' 
 #' @author Alexander Toenges
 #' 
@@ -47,11 +48,11 @@
 #' dds$condition <- factor(unlist(lapply(seq(1,3),function(x) rep(LETTERS[x], 4))))
 #' contrasts <- diffanalyseR::makeAllContrasts(levels(dds$condition), deseq2 = TRUE, name = "condition")
 #' dds <- DESeq2::estimateSizeFactors(dds) %>% DESeq2::estimateDispersions(.)
-#' res <- run_apeglm(dds,contrasts, lfc=.5)
+#' res <- run_apeglm(dds,contrasts, lfc=.5, cooksCutoff=0)
 #' 
 #' @export
-run_apeglm <- function(dds, contrasts, lfc=.5, 
-                       svalue=TRUE, workers=1, verbose=TRUE)
+run_apeglm <- function(dds, contrasts, lfc=.5, svalue=TRUE, 
+                       workers=1, verbose=TRUE, ...)
   
 {
   
@@ -102,13 +103,17 @@ run_apeglm <- function(dds, contrasts, lfc=.5,
     
     # lfcShrink:
     if(verbose) message("=> Testing ", df[i,4])
-    tt <- suppressMessages(DESeq2::lfcShrink(dds = dds, coef = which(DESeq2::resultsNames(dds)==df[i,4]), 
-                            lfcThreshold = lfc, quiet = !verbose, svalue = svalue, type = "apeglm",
-                            parallel = do.parallel, BPPARAM = BP)) %>% 
-            data.frame(.) %>% 
-            data.frame(Gene=rownames(.), .) %>% 
-            na.omit
     
+    rn <- DESeq2::resultsNames(dds)
+    w  <- which(DESeq2::resultsNames(dds)==df[i,4])
+    tt <- DESeq2::results(object=dds, name=rn[w], lfcThreshold=lfc, 
+                          parallel=do.parallel, BPPARAM=BP, ...) %>%
+          suppressMessages(DESeq2::lfcShrink(dds = dds, res=., 
+                                             coef = w,
+                                             svalue=svalue, type="apeglm",
+                                             parallel=do.parallel, BPPARAM=BP)) %>% 
+          data.frame(Gene=rownames(.), .) %>% na.omit
+        
     tt$baseMean <- log2(tt$baseMean+1)
     
     if(svalue){
