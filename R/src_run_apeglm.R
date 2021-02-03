@@ -63,7 +63,7 @@ run_apeglm <- function(dds, contrasts, lfc=.5,
   if(sum(pkg %in% rownames(installed.packages())) != length(pkg)) 
     stop("Make sure both DESeq2 and apeglm are installed!", call. = FALSE)
   
-  if(is.null(DESeq2::sizeFactors(dds)) & ! "normalizationFactors" %in% assayNames(dds))
+  if(is.null(DESeq2::sizeFactors(dds)) & ! "normalizationFactors" %in% SummarizedExperiment::assayNames(dds))
     stop("dds contains neither size- nor normalization factors", call. = FALSE)
   if(is.null(mcols(dds)$dispersion)) stop("dds contains no dispersion estimates", call. = FALSE)
   invisible(match.arg(arg = class(contrasts)[1], choices = c("list")))
@@ -95,15 +95,15 @@ run_apeglm <- function(dds, contrasts, lfc=.5,
     dds[[nm]] <- relevel(dds[[nm]], df[i,3])
     
     #/ Run Wald if necessary for that comparison:
-    if(length(resultsNames(dds))==0 | !df[i,4] %in% resultsNames(dds)){
+    if(length(DESeq2::resultsNames(dds))==0 | !df[i,4] %in% DESeq2::resultsNames(dds)){
       if(verbose) message("Releveling to ", df[i,3])
       dds <- DESeq2::nbinomWaldTest(object = dds, quiet = TRUE)
     }
     
     # lfcShrink:
     if(verbose) message("=> Testing ", df[i,4])
-    tt <- DESeq2::lfcShrink(dds = dds, coef = which(resultsNames(dds)==df[i,4]), 
-                            lfcThreshold = lfc, quiet = verbose, svalue = svalue, type = "apeglm",
+    tt <- DESeq2::lfcShrink(dds = dds, coef = which(DESeq2::resultsNames(dds)==df[i,4]), 
+                            lfcThreshold = lfc, quiet = !verbose, svalue = svalue, type = "apeglm",
                             parallel = do.parallel, BPPARAM = BP) %>% 
             data.frame(.) %>% 
             data.frame(Gene=rownames(.), .) %>% 

@@ -17,7 +17,8 @@ Depends:
   matrixStats,
   parallel,
   reshape2,
-  statmod
+  statmod,
+  SummarizedExperiment
 Suggests:
   airway,
   DESeq2,

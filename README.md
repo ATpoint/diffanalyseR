@@ -13,7 +13,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)){
 }
 
 #/ Bioc packages:
-pk <- c("BiocParallel", "edgeR", "GenomicRanges")
+pk <- c("BiocParallel", "edgeR", "GenomicRanges", "SummarizedExperiments")
 BiocManager::install(pk)
 
 install.packages("remotes")
