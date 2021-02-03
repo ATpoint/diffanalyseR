@@ -13,7 +13,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)){
 }
 
 #/ Bioc packages:
-pk <- c("edgeR", "GenomicRanges")
+pk <- c("BiocParallel", "edgeR", "GenomicRanges")
 BiocManager::install(pk)
 
 install.packages("remotes")
@@ -42,6 +42,9 @@ See the help of each functions for details and examples.
 - `Permut_GRanges` calculate permutation-based p-values comparing an observed overlap between two GRanges objects with the expected overlap between one of the objects and a background set  
 
 - `res_edgeR` automates contrast testing via the edgeR QLF framework  
+
+- `run_apeglm` is a wrapper around the `lfcShrink` function with type=apeglm of DESeq2 which automates the releveling and rerunning of the Wald test in case certain contrasts are not accessable
+via the resultsNames function  
 
 - `rowScale` is a matrixStats-based wrapper to efficiently scale and center numeric matrices as efficient replacement of `t(scale(t(x)))` avoiding the double transposition which takes time with very large data such as single-cell stuff   
 
