@@ -102,9 +102,9 @@ run_apeglm <- function(dds, contrasts, lfc=.5,
     
     # lfcShrink:
     if(verbose) message("=> Testing ", df[i,4])
-    tt <- DESeq2::lfcShrink(dds = dds, coef = which(DESeq2::resultsNames(dds)==df[i,4]), 
+    tt <- suppressMessages(DESeq2::lfcShrink(dds = dds, coef = which(DESeq2::resultsNames(dds)==df[i,4]), 
                             lfcThreshold = lfc, quiet = !verbose, svalue = svalue, type = "apeglm",
-                            parallel = do.parallel, BPPARAM = BP) %>% 
+                            parallel = do.parallel, BPPARAM = BP)) %>% 
             data.frame(.) %>% 
             data.frame(Gene=rownames(.), .) %>% 
             na.omit
