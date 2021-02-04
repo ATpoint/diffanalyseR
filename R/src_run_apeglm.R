@@ -11,7 +11,6 @@
 #' The latter is hardcoded in \code{DESeq2::lfcShrink}. 
 #' @param workers number of BiocParallel workers
 #' @param verbose logical, whether to allow status messages
-#' @param ... additional arguments passed to \code{DESeq2::results}
 #' 
 #' @author Alexander Toenges
 #' 
@@ -52,7 +51,7 @@
 #' 
 #' @export
 run_apeglm <- function(dds, contrasts, lfc=.5, svalue=TRUE, 
-                       workers=1, verbose=TRUE, ...)
+                       workers=1, verbose=TRUE)
   
 {
   
@@ -90,7 +89,7 @@ run_apeglm <- function(dds, contrasts, lfc=.5, svalue=TRUE,
   }
   
   #/ loop through the contrasts:
-  res <- list()
+  res.list <- list()
   for(i in 1:nrow(df)){
     
     dds[[nm]] <- relevel(dds[[nm]], df[i,3])
@@ -103,17 +102,17 @@ run_apeglm <- function(dds, contrasts, lfc=.5, svalue=TRUE,
     
     # lfcShrink:
     if(verbose) message("=> Testing ", df[i,4])
+    if(lfc>0) svalue=TRUE
+    rn  <- DESeq2::resultsNames(dds)
+    w   <- which(DESeq2::resultsNames(dds)==df[i,4])
+    res <- DESeq2::results(object=dds, name=rn[w], parallel=do.parallel, 
+                           lfcThreshold=lfc, BPPARAM=BP)
+    tt  <- DESeq2::lfcShrink(dds=dds, res=res, coef=w,
+                             lfcThreshold=lfc, svalue=svalue, 
+                             type="apeglm",
+                             parallel=do.parallel, BPPARAM=BP) %>% 
+      data.frame(Gene=rownames(.), .) %>% na.omit
     
-    rn <- DESeq2::resultsNames(dds)
-    w  <- which(DESeq2::resultsNames(dds)==df[i,4])
-    tt <- DESeq2::results(object=dds, name=rn[w], lfcThreshold=lfc, 
-                          parallel=do.parallel, BPPARAM=BP, ...) %>%
-          suppressMessages(DESeq2::lfcShrink(dds = dds, res=., 
-                                             coef = w,
-                                             svalue=svalue, type="apeglm",
-                                             parallel=do.parallel, BPPARAM=BP)) %>% 
-          data.frame(Gene=rownames(.), .) %>% na.omit
-        
     tt$baseMean <- log2(tt$baseMean+1)
     
     if(svalue){
@@ -123,11 +122,12 @@ run_apeglm <- function(dds, contrasts, lfc=.5, svalue=TRUE,
       tt <- tt[,c(1,3,2,4,5,6)]        
     }
     
-    res[[i]] <- tt
+    res.list[[i]] <- tt
     rm(tt)
     
-  };  names(res) <- rownames(df)
+  }
+  names(res.list) <- rownames(df)
   
-  return(res)
+  return(res.list)
   
 }

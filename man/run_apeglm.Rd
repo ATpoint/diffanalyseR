@@ -10,8 +10,7 @@ run_apeglm(
   lfc = 0.5,
   svalue = TRUE,
   workers = 1,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 )
 }
 \arguments{
@@ -27,8 +26,6 @@ The latter is hardcoded in \code{DESeq2::lfcShrink}.}
 \item{workers}{number of BiocParallel workers}
 
 \item{verbose}{logical, whether to allow status messages}
-
-\item{...}{additional arguments passed to \code{DESeq2::results}}
 }
 \description{
 The function is designed to use apeglm for shrinking LFCs while automatically 
