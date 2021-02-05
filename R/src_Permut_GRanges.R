@@ -7,6 +7,9 @@
 #' the observed overlaps with the featureset set
 #' @param background GRanges object containing regions that will be used to generate 
 #' the permutated/random overlaps with the featureset set
+#' @param restrictset GRanges that are used to restrict overlapping operations between featureset and fore/background to.
+#' This could e.g. be TAD boundaries and only overlaps between featureset and fore/background within the same TAD would be counted.
+#' Features outside TADs are currently ignored.
 #' @param nperm number of permutations. Smallest p-value is calculated by 1/(nperm+1)
 #' @param return.bg_overlaps logical, whether to return the number of overlaps between permuted backgrounds and featureset
 #' as part of the output list. Can be useful for plotting/visualization.
@@ -39,12 +42,13 @@
 #' # simply use the first 500 genes to define a background set
 #' background=reduce(unlist(rowRanges(airway)[c(1:500)]))
 #' # as a primitive example we define the first 50 as the foreground
-#' foreground=background[1:50]
+#' set.seed(2021)
+#' foreground=background[sample(1:length(background), 50, replace=FALSE)]
 #' # and as features we also use the first 50 so obviously these will be significantly
 #' # associated with foreground as they're the same, this is just for illustration obviously
 #' featureset=foreground
 #' # unsurprisingly this is significant and the smallest possible pvalue (1/(nperm+1))
-#' Permut_GRanges(featureset=featureset,foreground=foreground,background=background,nperm=100,return.bg_overlaps=TRUE)
+#' Permut_GRanges(featureset=featureset,foreground=foreground,background=background,nperm=100)
 #' 
 #' @author Alexander Toenges
 #' 
@@ -52,13 +56,32 @@
 Permut_GRanges <- function(featureset,  
                            foreground,  
                            background,  
+                           restrictset=NULL,
                            nperm=500,     
                            return.bg_overlaps=FALSE,
                            conf.level=.95,
                            cores = detectCores()){
   
-  #/ Observed overlap so our Nul
-  s.is <- length(subsetByOverlaps(featureset, foreground))
+  invisible(match.arg(class(featureset), "GRanges"))
+  invisible(match.arg(class(foreground), "GRanges"))
+  invisible(match.arg(class(background), "GRanges"))
+  invisible(match.arg(class(restrictset), c("GRanges", "NULL")))
+  
+  if(!is.null(restrictset)){
+    
+    restrictset$ID <- paste0("ID", 1:length(restrictset))
+    makenewset <- function(oset, restr){
+      olap <- findOverlaps(oset, restr)
+      GRanges(seqnames = restr[olap@to]$ID, ranges = ranges(oset[olap@from]))
+    }
+    featureset=makenewset(oset=featureset, restr=restrictset)
+    foreground=makenewset(oset=foreground, restr=restrictset)
+    background=makenewset(oset=background, restr=restrictset)
+    
+  }
+  
+  #/ Observed overlap so our Null
+  s.is <- length(suppressWarnings(subsetByOverlaps(featureset, foreground)))
   
   #/ Background overlap function. Sample as many regions from background as there are foreground regions.
   .RandomFunction <- function(len.is, len.random, replace=FALSE) sample(1:len.random, len.is, replace = replace)
@@ -70,8 +93,8 @@ Permut_GRanges <- function(featureset,
   
   #/ Count the overlaps between the featureset and the randomly-drawn elements from the background:
   s.random <- unlist(mclapply(seq(1,nperm), mc.cores = cores, 
-                              function(x) length(subsetByOverlaps(featureset, 
-                                                                  background[.RandomFunction(len.is,len.random)]))))
+                              function(x) length(suppressWarnings(subsetByOverlaps(featureset, 
+                                                                                   background[.RandomFunction(len.is,len.random)])))))
   
   #/ get p-values:
   pval_greater <- (1+sum(s.random >= s.is))/(nperm+1)

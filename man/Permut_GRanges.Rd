@@ -8,6 +8,7 @@ Permut_GRanges(
   featureset,
   foreground,
   background,
+  restrictset = NULL,
   nperm = 500,
   return.bg_overlaps = FALSE,
   conf.level = 0.95,
@@ -22,6 +23,10 @@ the observed overlaps with the featureset set}
 
 \item{background}{GRanges object containing regions that will be used to generate 
 the permutated/random overlaps with the featureset set}
+
+\item{restrictset}{GRanges that are used to restrict overlapping operations between featureset and fore/background to.
+This could e.g. be TAD boundaries and only overlaps between featureset and fore/background within the same TAD would be counted.
+Features outside TADs are currently ignored.}
 
 \item{nperm}{number of permutations. Smallest p-value is calculated by 1/(nperm+1)}
 
@@ -61,12 +66,13 @@ data(airway)
 # simply use the first 500 genes to define a background set
 background=reduce(unlist(rowRanges(airway)[c(1:500)]))
 # as a primitive example we define the first 50 as the foreground
-foreground=background[1:50]
+set.seed(2021)
+foreground=background[sample(1:length(background), 50, replace=FALSE)]
 # and as features we also use the first 50 so obviously these will be significantly
 # associated with foreground as they're the same, this is just for illustration obviously
 featureset=foreground
 # unsurprisingly this is significant and the smallest possible pvalue (1/(nperm+1))
-Permut_GRanges(featureset=featureset,foreground=foreground,background=background,nperm=100,return.bg_overlaps=TRUE)
+Permut_GRanges(featureset=featureset,foreground=foreground,background=background,nperm=100)
 
 }
 \author{
