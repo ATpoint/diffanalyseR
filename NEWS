@@ -1,3 +1,6 @@
+v1.0.2
+-added restrictset argument to Permut_GRanges which can limit to allowed overlaps between the sets, e.g. this can be TAD boundaries
+
 v1.0.1
 -added run_apeglm function and added apeglm + DESeq2 as suggested dependencies, but not as depends to avoid pulling many packages when installing
 

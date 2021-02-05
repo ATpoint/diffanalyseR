@@ -1,7 +1,7 @@
 Package: diffanalyseR
 Type: Package
 Title: Wrapper functions for common tasks related to analysis of NGS counts data
-Version: 1.0.1
+Version: 1.0.2
 Authors: Alexander Toenges <a.toenges@uni-muenster.de>
 Maintainer: Alexander Toenges <a.toenges@uni-muenster.de>
 Description: A collection of wrapper functions for reproducible differential analysis of NGS count data
@@ -22,6 +22,7 @@ Depends:
 Suggests:
   airway,
   DESeq2,
-  apeglm
+  apeglm,
+  airway
 Encoding: UTF-8
 RoxygenNote: 7.1.1
