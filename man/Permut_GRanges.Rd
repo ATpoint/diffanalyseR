@@ -9,6 +9,7 @@ Permut_GRanges(
   foreground,
   background,
   restrictset = NULL,
+  allow_all = TRUE,
   nperm = 500,
   return.bg_overlaps = FALSE,
   conf.level = 0.95,
@@ -27,6 +28,12 @@ the permutated/random overlaps with the featureset set}
 \item{restrictset}{GRanges that are used to restrict overlapping operations between featureset and fore/background to.
 This could e.g. be TAD boundaries and only overlaps between featureset and fore/background within the same TAD would be counted.
 Features outside TADs are currently ignored.}
+
+\item{allow_all}{logical, whether to scan for any overlap fore/background and featureset within the same restrictset interval,
+e.g. in practice this could mean to scan for any overlap between ChIP-seq binding sites (featureset) and TSS sites (foreground)
+within the same TAD (restrictset), so basically counting the total number of overlaps of fore/background with featureset
+in the same TAD. This is the default. Only makes sense together with restrictset. If no restrictset then one should
+resize fore/background set to a desired window size before feeding into this function, e.g. 50kb in each direction.}
 
 \item{nperm}{number of permutations. Smallest p-value is calculated by 1/(nperm+1)}
 

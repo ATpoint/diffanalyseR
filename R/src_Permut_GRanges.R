@@ -10,6 +10,11 @@
 #' @param restrictset GRanges that are used to restrict overlapping operations between featureset and fore/background to.
 #' This could e.g. be TAD boundaries and only overlaps between featureset and fore/background within the same TAD would be counted.
 #' Features outside TADs are currently ignored.
+#' @param allow_all logical, whether to scan for any overlap fore/background and featureset within the same restrictset interval,
+#' e.g. in practice this could mean to scan for any overlap between ChIP-seq binding sites (featureset) and TSS sites (foreground)
+#' within the same TAD (restrictset), so basically counting the total number of overlaps of fore/background with featureset
+#' in the same TAD. This is the default. Only makes sense together with restrictset. If no restrictset then one should
+#' resize fore/background set to a desired window size before feeding into this function, e.g. 50kb in each direction.
 #' @param nperm number of permutations. Smallest p-value is calculated by 1/(nperm+1)
 #' @param return.bg_overlaps logical, whether to return the number of overlaps between permuted backgrounds and featureset
 #' as part of the output list. Can be useful for plotting/visualization.
@@ -57,6 +62,7 @@ Permut_GRanges <- function(featureset,
                            foreground,  
                            background,  
                            restrictset=NULL,
+                           allow_all=TRUE,
                            nperm=500,     
                            return.bg_overlaps=FALSE,
                            conf.level=.95,
@@ -77,6 +83,16 @@ Permut_GRanges <- function(featureset,
     featureset=makenewset(oset=featureset, restr=restrictset)
     foreground=makenewset(oset=foreground, restr=restrictset)
     background=makenewset(oset=background, restr=restrictset)
+    
+    #/ if TRUE then set ranges in fore/back same as in restrictset, technically that means
+    #/ that we scan for overlaps between foreground/background and featureset across the entire restrictset,
+    #/ e.g. an entire TAD
+    if(allow_all){
+      
+      ranges(foreground) <- ranges(restrictset)[match(as.character(seqnames(foreground)), restrictset$ID)]
+      ranges(background) <- ranges(restrictset)[match(as.character(seqnames(background)), restrictset$ID)]
+      
+    }
     
   }
   
