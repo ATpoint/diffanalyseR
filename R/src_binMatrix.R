@@ -28,7 +28,7 @@ binMatrix <- function(mat, byNcols, method = "mean", drop.uneven = FALSE){
   invisible(match.arg(arg = class(byNcols)[1], choices = c("numeric")))
   invisible(match.arg(arg = method, choices = c("mean", "median")))
   
-  if(byNcols==1) stop("One single bin is pretty pointless, huh?")
+  if(byNcols==1) return(mat)
   
   full <- floor(ncol(mat) / byNcols)
   half <- ncol(mat) - byNcols*full
