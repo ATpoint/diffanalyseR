@@ -1,126 +1,106 @@
 #' A function to generate permutation-based p-values based on overlap between GRanges objects
 #'
-#' Output is a named list with p-values, observed overlap and confidence intervals.
+#' Output is a named list with p-values, observed overlap and confidence intervals for 
+#' the permutation-based overlap test.
 #'
 #' @param featureset GRanges object to overlap with the below objects, see details.
 #' @param foreground GRanges object containing regions that will be used to generate 
 #' the observed overlaps with the featureset set
 #' @param background GRanges object containing regions that will be used to generate 
 #' the permutated/random overlaps with the featureset set
-#' @param restrictset GRanges that are used to restrict overlapping operations between featureset and fore/background to.
+#' @param restrictset GRanges to restrict overlapping operations between featureset and fore/background to.
 #' This could e.g. be TAD boundaries and only overlaps between featureset and fore/background within the same TAD would be counted.
-#' Features outside TADs are currently ignored.
-#' @param allow_all logical, whether to scan for any overlap fore/background and featureset within the same restrictset interval,
-#' e.g. in practice this could mean to scan for any overlap between ChIP-seq binding sites (featureset) and TSS sites (foreground)
-#' within the same TAD (restrictset), so basically counting the total number of overlaps of fore/background with featureset
-#' in the same TAD. This is the default. Only makes sense together with restrictset. If no restrictset then one should
-#' resize fore/background set to a desired window size before feeding into this function, e.g. 50kb in each direction.
-#' @param nperm number of permutations. Smallest p-value is calculated by 1/(nperm+1)
-#' @param return.bg_overlaps logical, whether to return the number of overlaps between permuted backgrounds and featureset
-#' as part of the output list. Can be useful for plotting/visualization.
+#' Features outside TADs are ignored.
+#' @param nperm number of permutations. Smallest possible p-value is \code{1/(nperm+1)}
+#' @param return.values logical, whether to return the number of overlaps between permuted backgrounds and featureset
+#' as part of the output list. Can be useful for plotting/visualization, is not ordered though.
 #' @param conf.level the confidence level to calculate 
-#' @param cores number of mclapply workers for the permutations
 #' 
 #' @details 
-#' Test whether a set of genomic regions, here called foreground, is statistically associated with a set
-#' of genomic features, here called featureset, e.g. foreground being a set of TSS, and featureset being ChIP-seq
-#' TF peaks. The question could e.g. be whether these TSS and its vicinity (say 50kb) show more overlap with the TF peaks
-#' than a background which could be all annotated TSS or all expressed TSS in this experiment. For this we would provide 
-#' as foreground the TSS coordinates, resizes by 25kb in each direction. Based on these we count the observed overlap between 
-#' featureset and foreground as the number of unique overlapping elements of featureset with foreground.
-#' We compare this with the expected overlap based on the background. The background could e.g. be all annotated TSS 
-#' (or all expressed TSS) extended by the same window size as foreground. Foreground can (and probably should) be part of background.
-#' For the expected overlap based on background we randomly draw (without replacement) from the background the same number of entries as 
-#' there are in foreground and then do the same overlap counting as above. We repeat this nperm times to define the expected
-#' overlap and calculate confidence intervals. p-values are then calculated based on the formula:  
-#' \code{(1+sum(s.random >= s.is))/(nperm+1)} where \code{s.random} are the overlaps between background and featureset,
-#' \code{s.is} is the observed overlap between foreground and featureset and nperm is the number of permutations.
-#' The returned `pval_greater` is then the probability for the Null of foreground not being enriched for overlaps.
-#' The `pval_less` is the probability for the Null that the foreground is not depleted for overlaps. The formula above
-#' is then `<=` rather than `>=`. The returned confidence intervals indicate the bounds of the expected overlaps based on the
-#' background set. Output is returned as a named list.
+#' Underlying question is whether the overlap for a given set of features (featureset), e.g.
+#' ChIP-seq peaks is greater between a given foreground set, e.g. certain TSS, compared to a 
+#' background, e.g. all annotated TSS. The permutation-based test performs overlap counting between
+#' the foreground and permutated background (number of permutations by default 5000). Pvalues are then calculated
+#' which test whether the background overlaps are equal or more extreme than the foreground overlaps.
+#' The smallest possible pvalue is defined by 1/(nperm+1).
+#' Optionally one can provide a restrictset, e.g. TAD coordinates, so only intersections between features
+#' are counted that overlap the same restrictset interval.
 #' 
 #' @examples 
-#' # A simple example, using airway to get some coordinates:
 #' library(airway)
 #' data(airway)
-#' # simply use the first 500 genes to define a background set
+#' 
 #' background=reduce(unlist(rowRanges(airway)[c(1:500)]))
-#' # as a primitive example we define the first 50 as the foreground
 #' set.seed(2021)
 #' foreground=background[sample(1:length(background), 50, replace=FALSE)]
-#' # and as features we also use the first 50 so obviously these will be significantly
-#' # associated with foreground as they're the same, this is just for illustration obviously
 #' featureset=foreground
-#' # unsurprisingly this is significant and the smallest possible pvalue (1/(nperm+1))
-#' Permut_GRanges(featureset=featureset,foreground=foreground,background=background,nperm=100)
+#' Permut_GRanges(featureset=featureset,foreground=foreground,background=background)
 #' 
 #' @author Alexander Toenges
 #' 
 #' @export
-Permut_GRanges <- function(featureset,  
-                           foreground,  
-                           background,  
-                           restrictset=NULL,
-                           allow_all=TRUE,
-                           nperm=500,     
-                           return.bg_overlaps=FALSE,
-                           conf.level=.95,
-                           cores = detectCores()){
+Permut_GRanges <- function(featureset, foreground,  
+                           background, restrictset=NULL,
+                           nperm=5000, conf.level=.95,
+                           return.values=FALSE)
+{
   
   invisible(match.arg(class(featureset), "GRanges"))
   invisible(match.arg(class(foreground), "GRanges"))
   invisible(match.arg(class(background), "GRanges"))
   invisible(match.arg(class(restrictset), c("GRanges", "NULL")))
   
+  #/ If a restrictset is provided make a little trick to speed up computations,
+  #/ simply give each element of restrictset an "ID" and use this as the
+  #/ chromosome identifier. That way we do not need to run the intersection
+  #/ for each element separately.
   if(!is.null(restrictset)){
     
     restrictset$ID <- paste0("ID", 1:length(restrictset))
     makenewset <- function(oset, restr){
       olap <- findOverlaps(oset, restr)
-      GRanges(seqnames = restr[olap@to]$ID, ranges = ranges(oset[olap@from]))
+      suppressWarnings(GRanges(seqnames = restr[olap@to]$ID, ranges = ranges(oset[olap@from])))
     }
     featureset=makenewset(oset=featureset, restr=restrictset)
     foreground=makenewset(oset=foreground, restr=restrictset)
     background=makenewset(oset=background, restr=restrictset)
     
-    #/ if TRUE then set ranges in fore/back same as in restrictset, technically that means
-    #/ that we scan for overlaps between foreground/background and featureset across the entire restrictset,
-    #/ e.g. an entire TAD
-    if(allow_all){
-      
-      ranges(foreground) <- ranges(restrictset)[match(as.character(seqnames(foreground)), restrictset$ID)]
-      ranges(background) <- ranges(restrictset)[match(as.character(seqnames(background)), restrictset$ID)]
-      
-    }
-    
   }
   
-  #/ Observed overlap so our Null
+  # Get idx for the permutations without replacement
+  idx <- lapply(1:nperm, function(x){
+    sample(1:length(background), length(foreground), replace=FALSE)
+  })
+  
+  #/ Sample from background based on the idx
+  grl <- background[unlist(idx)]
+  
+  #/ add a unique name to each set of permutations
+  grl$permut <- unlist(lapply(1:nperm, function(x) rep(paste0("perm",x), length(foreground))))
+  
+  #/ find overlaps between foreground and permutated background (=grl)
+  fo <- suppressWarnings(findOverlaps(featureset, grl))
+  s.random <- as.numeric(table(grl[fo@to]$permut))
+  
+  #/ if s.random is smaller than nperm means there were zero overlaps for some
+  #/ permutations, fill them up with zeros
+  s.random <- c(s.random, rep(0, nperm-length(s.random)))
+  
+  #/ the actual (=observed) overlap:
   s.is <- length(suppressWarnings(subsetByOverlaps(featureset, foreground)))
   
-  #/ Background overlap function. Sample as many regions from background as there are foreground regions.
-  .RandomFunction <- function(len.is, len.random, replace=FALSE) sample(1:len.random, len.is, replace = replace)
-  
-  len.is=length(foreground)
-  len.random=length(background)
-  
-  if(len.is>len.random) warning("Foreground has more elements than background")
-  
-  #/ Count the overlaps between the featureset and the randomly-drawn elements from the background:
-  s.random <- unlist(mclapply(seq(1,nperm), mc.cores = cores, 
-                              function(x) length(suppressWarnings(subsetByOverlaps(featureset, 
-                                                                                   background[.RandomFunction(len.is,len.random)])))))
-  
-  #/ get p-values:
+  #/ get permutation-based p-values testing the Null that the permutations return
+  #/ the same or more extreme (or less extreme) values than the observed overlap:
   pval_greater <- (1+sum(s.random >= s.is))/(nperm+1)
   pval_less    <- (1+sum(s.random <= s.is))/(nperm+1)
   
   #/ CI:
-  ci <- t.test(s.random,conf.level = conf.level)$conf.in
+  ci <- tryCatch(expr=t.test(s.random,conf.level = conf.level)$conf.in,
+                 error=function(x) return(NA))
+  ci[ci<0] <- 0
   
   l <- list(pval_greater=pval_greater, pval_less=pval_less, observed=s.is, CI=ci)
-  if(return.bg_overlaps) l[["s.random"]] <- s.random
+  if(return.values) l[["s.random"]] <- s.random
   return(l)
   
 }
