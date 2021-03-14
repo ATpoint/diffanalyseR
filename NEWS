@@ -1,3 +1,7 @@
+v1.0.3
+-modified Permut_GRanges code leading to massive (5-10x) speed-up depending on nperm parameter
+without and mclapply on a single thread
+
 v1.0.2
 -added restrictset argument to Permut_GRanges which can limit to allowed overlaps between the sets, e.g. this can be TAD boundaries
 
