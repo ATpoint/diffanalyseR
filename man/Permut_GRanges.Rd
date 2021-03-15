@@ -12,7 +12,7 @@ Permut_GRanges(
   restrictset = NULL,
   nperm = 5000,
   conf.level = 0.95,
-  return.values = FALSE
+  return.values = TRUE
 )
 
 Permut_GRanges(
@@ -22,7 +22,7 @@ Permut_GRanges(
   restrictset = NULL,
   nperm = 5000,
   conf.level = 0.95,
-  return.values = FALSE
+  return.values = TRUE
 )
 }
 \arguments{

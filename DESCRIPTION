@@ -16,6 +16,7 @@ Depends:
   graphics,
   matrixStats,
   parallel,
+  plyranges,
   reshape2,
   statmod,
   SummarizedExperiment

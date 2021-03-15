@@ -1,3 +1,7 @@
+v1.0.4
+-Permut_GRanges internally is now mostly tidy, fixed some critical bugs towards double-counting
+-plyranges as dependency
+
 v1.0.3
 -modified Permut_GRanges code leading to massive (5-10x) speed-up depending on nperm parameter
 without and mclapply on a single thread

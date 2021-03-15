@@ -42,7 +42,7 @@
 Permut_GRanges <- function(featureset, foreground,  
                            background, restrictset=NULL,
                            nperm=5000, conf.level=.95,
-                           return.values=FALSE)
+                           return.values=TRUE)
 {
   
   invisible(match.arg(class(featureset), "GRanges"))
@@ -50,58 +50,55 @@ Permut_GRanges <- function(featureset, foreground,
   invisible(match.arg(class(background), "GRanges"))
   invisible(match.arg(class(restrictset), c("GRanges", "NULL")))
   
-  #/ If a restrictset is provided make a little trick to speed up computations,
-  #/ simply give each element of restrictset an "ID" and use this as the
-  #/ chromosome identifier. That way we do not need to run the intersection
-  #/ for each element separately.
+  #/ restrictset is provided. give each entry a unique name and use this
+  #/ as seqnames
   if(!is.null(restrictset)){
     
     restrictset$ID <- paste0("ID", 1:length(restrictset))
+    
+    #/ take the center of the feature/fore/background and intersect with restrictset:
     makenewset <- function(oset, restr){
-      olap <- findOverlaps(oset, restr)
+      olap <- suppressWarnings(findOverlaps(resize(oset,fix="center",width=1), restr))
       suppressWarnings(GRanges(seqnames = restr[olap@to]$ID, ranges = ranges(oset[olap@from])))
     }
+    
     featureset=makenewset(oset=featureset, restr=restrictset)
     foreground=makenewset(oset=foreground, restr=restrictset)
     background=makenewset(oset=background, restr=restrictset)
     
   }
   
-  # Get idx for the permutations without replacement
+  # Permutate the background based on foreground length, get idx:
   idx <- lapply(1:nperm, function(x){
     sample(1:length(background), length(foreground), replace=FALSE)
   })
   
   #/ Sample from background based on the idx
-  grl <- background[unlist(idx)]
+  grl <- background[unlist(idx)] %>%
+    plyranges::mutate(permut=rep(paste0("perm",1:length(idx)),each=length(foreground)))
   
-  #/ add a unique name to each set of permutations
-  grl$permut <- unlist(lapply(1:nperm, function(x) rep(paste0("perm",x), length(foreground))))
+  #/ find overlaps between featureset and permutated background (=grl)
+  s.random <- suppressWarnings(findOverlaps(featureset, grl)) %>%
+    data.frame(featureset[.@from], grl[.@to]) %>%
+    select(c("seqnames","start","end","permut")) %>%
+    distinct %>%
+    pull(permut) %>%
+    table %>%
+    as.numeric
   
-  #/ find overlaps between foreground and permutated background (=grl)
-  fo <- suppressWarnings(findOverlaps(featureset, grl))
-  
-  s.random <- as.numeric(table(data.frame(featureset[fo@from], grl[fo@to])$permut))
-  
-  #/ if s.random is smaller than nperm means there were zero overlaps for some
-  #/ permutations, fill them up with zeros
+  #/ in case some overlaps were empty add zeros:
   s.random <- c(s.random, rep(0, nperm-length(s.random)))
+  s.is <- length(subsetByOverlaps(featureset, foreground))
   
-  #/ the actual (=observed) overlap:
-  s.is <- length(findOverlaps(featureset, foreground)@from)
+  #/ construct output list:
+  l <- list(pval_greater=(1+sum(s.random >= s.is))/(nperm+1), 
+            pval_less=(1+sum(s.random <= s.is))/(nperm+1), 
+            observed=s.is, 
+            CI=tryCatch(expr=as.numeric(t.test(s.random,conf.level = conf.level)$conf.in),
+                        error=function(x) return(NA)))
   
-  #/ get permutation-based p-values testing the Null that the permutations return
-  #/ the same or more extreme (or less extreme) values than the observed overlap:
-  pval_greater <- (1+sum(s.random >= s.is))/(nperm+1)
-  pval_less    <- (1+sum(s.random <= s.is))/(nperm+1)
-  
-  #/ CI:
-  ci <- tryCatch(expr=as.numeric(t.test(s.random,conf.level = conf.level)$conf.in),
-                 error=function(x) return(NA))
-  ci[ci<0] <- 0
-  
-  l <- list(pval_greater=pval_greater, pval_less=pval_less, observed=s.is, CI=ci)
   if(return.values) l[["s.random"]] <- s.random
+  
   return(l)
   
 }
