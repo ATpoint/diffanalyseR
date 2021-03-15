@@ -48,8 +48,20 @@ as part of the output list. Can be useful for plotting/visualization, is not ord
 \description{
 Output is a named list with p-values, observed overlap and confidence intervals for 
 the permutation-based overlap test.
+
+Output is a named list with p-values, observed overlap and confidence intervals for 
+the permutation-based overlap test.
 }
 \details{
+Underlying question is whether the overlap for a given set of features (featureset), e.g.
+ChIP-seq peaks is greater between a given foreground set, e.g. certain TSS, compared to a 
+background, e.g. all annotated TSS. The permutation-based test performs overlap counting between
+the foreground and permutated background (number of permutations by default 5000). Pvalues are then calculated
+which test whether the background overlaps are equal or more extreme than the foreground overlaps.
+The smallest possible pvalue is defined by 1/(nperm+1).
+Optionally one can provide a restrictset, e.g. TAD coordinates, so only intersections between features
+are counted that overlap the same restrictset interval.
+
 Underlying question is whether the overlap for a given set of features (featureset), e.g.
 ChIP-seq peaks is greater between a given foreground set, e.g. certain TSS, compared to a 
 background, e.g. all annotated TSS. The permutation-based test performs overlap counting between
@@ -69,7 +81,18 @@ foreground=background[sample(1:length(background), 50, replace=FALSE)]
 featureset=foreground
 Permut_GRanges(featureset=featureset,foreground=foreground,background=background)
 
+library(airway)
+data(airway)
+
+background=reduce(unlist(rowRanges(airway)[c(1:500)]))
+set.seed(2021)
+foreground=background[sample(1:length(background), 50, replace=FALSE)]
+featureset=foreground
+Permut_GRanges(featureset=featureset,foreground=foreground,background=background)
+
 }
 \author{
+Alexander Toenges
+
 Alexander Toenges
 }

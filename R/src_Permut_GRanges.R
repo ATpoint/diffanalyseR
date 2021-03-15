@@ -80,14 +80,15 @@ Permut_GRanges <- function(featureset, foreground,
   
   #/ find overlaps between foreground and permutated background (=grl)
   fo <- suppressWarnings(findOverlaps(featureset, grl))
-  s.random <- as.numeric(table(grl[fo@to]$permut))
+  
+  s.random <- as.numeric(table(data.frame(featureset[fo@from], grl[fo@to])$permut))
   
   #/ if s.random is smaller than nperm means there were zero overlaps for some
   #/ permutations, fill them up with zeros
   s.random <- c(s.random, rep(0, nperm-length(s.random)))
   
   #/ the actual (=observed) overlap:
-  s.is <- length(suppressWarnings(subsetByOverlaps(featureset, foreground)))
+  s.is <- length(findOverlaps(featureset, foreground)@from)
   
   #/ get permutation-based p-values testing the Null that the permutations return
   #/ the same or more extreme (or less extreme) values than the observed overlap:
@@ -95,7 +96,7 @@ Permut_GRanges <- function(featureset, foreground,
   pval_less    <- (1+sum(s.random <= s.is))/(nperm+1)
   
   #/ CI:
-  ci <- tryCatch(expr=t.test(s.random,conf.level = conf.level)$conf.in,
+  ci <- tryCatch(expr=as.numeric(t.test(s.random,conf.level = conf.level)$conf.in),
                  error=function(x) return(NA))
   ci[ci<0] <- 0
   
