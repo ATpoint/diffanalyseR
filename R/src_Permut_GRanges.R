@@ -42,8 +42,7 @@
 Permut_GRanges <- function(featureset, foreground,  
                            background, restrictset=NULL,
                            nperm=5000, conf.level=.95,
-                           return.values=TRUE)
-{
+                           return.values=TRUE){
   
   invisible(match.arg(class(featureset), "GRanges"))
   invisible(match.arg(class(foreground), "GRanges"))
@@ -88,14 +87,37 @@ Permut_GRanges <- function(featureset, foreground,
   
   #/ in case some overlaps were empty add zeros:
   s.random <- c(s.random, rep(0, nperm-length(s.random)))
-  s.is <- length(subsetByOverlaps(featureset, foreground))
+  
+  #/ Observed overlap:
+  olap.fg <- findOverlaps(featureset, foreground)
+  s.is    <- length(unique(olap.fg@from))
+  per_element.foreground <- 
+    table(olap.fg@to) %>%
+    as.data.frame %>%
+    merge(x=data.frame(A=seq(1,length(foreground))), y=.,
+          by.x="A",by.y="Var1", all.x=TRUE) %>%
+    mutate(Freq=ifelse(is.na(Freq), 0, Freq)) %>%
+    pull(Freq)
+  
+  olap.bg <- findOverlaps(featureset, background)
+  s.bg    <- length(unique(olap.bg@from))
+  per_element.background <- 
+    table(olap.bg@to) %>%
+    as.data.frame %>%
+    merge(x=data.frame(A=seq(1,length(foreground))), y=.,
+          by.x="A",by.y="Var1", all.x=TRUE) %>%
+    mutate(Freq=ifelse(is.na(Freq), 0, Freq)) %>%
+    pull(Freq)
+  
+  #/ Summary per foreground region:
   
   #/ construct output list:
   l <- list(pval_greater=(1+sum(s.random >= s.is))/(nperm+1), 
             pval_less=(1+sum(s.random <= s.is))/(nperm+1), 
             observed=s.is, 
             CI=tryCatch(expr=as.numeric(t.test(s.random,conf.level = conf.level)$conf.in),
-                        error=function(x) return(NA)))
+                        error=function(x) return(NA)),
+            individual_foreground=per_element.foreground)
   
   if(return.values) l[["s.random"]] <- s.random
   
